@@ -21,6 +21,7 @@ def activate_comments(app, config):
     ut_config = com_config.get("utterances")
     dk_config = com_config.get("dokieli")
     ht_config = com_config.get("hypothesis")
+    gi_config = com_config.get("giscus")
 
     extra_config = {"async": "async"}
 
@@ -87,6 +88,64 @@ def activate_comments(app, config):
         """
         )
         app.add_js_file(None, body=js, kind="utterances")
+
+
+    # giscus config
+    if gi_config:
+        if "repo" not in gi_config:
+            raise ValueError("To use giscus, you must provide a repository.")
+        repo = gi_config["repo"]
+        repo_id = gi_config["repo-id"]
+        category = gi_config["category"]
+        category_id = gi_config["category-id"]
+        
+        # Giscus requires a script + config in a specific place, so do this w/ JS
+        dom = """
+            var commentsRunWhenDOMLoaded = cb => {
+            if (document.readyState != 'loading') {
+                cb()
+            } else if (document.addEventListener) {
+                document.addEventListener('DOMContentLoaded', cb)
+            } else {
+                document.attachEvent('onreadystatechange', function() {
+                if (document.readyState == 'complete') cb()
+                })
+            }
+        }
+        """
+
+        issue_term = gi_config.get("issue-term", "pathname")
+        theme = gi_config.get("theme", "light")
+        crossorigin = gi_config.get("crossorigin", "anonymous")
+        reactions = gi_config.get("reactions-enabled", "1")
+        js = dedent(
+            f"""
+        {dom}
+        var addGiscus = () => {{
+            var script = document.createElement("script");
+            script.type = "text/javascript";
+            script.src = "https://giscus.app/client.js";
+            script.async = "async";
+
+            script.setAttribute("data-repo", "{repo}");
+            script.setAttribute("data-repo-id", "{repo_id}MDEwOlJlcG9zaXRvcnkyOTEwNjgxODg=");
+            script.setAttribute("data-theme", "{theme}");
+            script.setAttribute("data-category", "{category}");
+            script.setAttribute("data-category-id", "{category_id}");
+            script.setAttribute("data-mapping", "pathname");
+            script.setAttribute("data-reactions-enabled", "{reactions}");
+            script.setAttribute("crossorigin", "{crossorigin}");
+
+            sections = document.querySelectorAll("div.prev-next-bottom");
+            if (sections !== null) {{
+                section = sections[sections.length-1];
+                section.parentNode.appendChild(script);
+            }}
+        }}
+        commentsRunWhenDOMLoaded(addGiscus);
+        """
+        )
+        app.add_js_file(None, body=js, kind="giscuss")
 
 
 def setup(app):
