@@ -89,6 +89,10 @@ def activate_comments(app, config):
         )
         app.add_js_file(None, body=js, kind="utterances")
 
+    app.add_js_file(
+        "https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js",
+        kind="bootstrap",
+    )
 
     # giscus config
     if gi_config:
@@ -98,7 +102,7 @@ def activate_comments(app, config):
         repo_id = gi_config["repo-id"]
         category = gi_config["category"]
         category_id = gi_config["category-id"]
-        
+
         # Giscus requires a script + config in a specific place, so do this w/ JS
         dom = """
             var commentsRunWhenDOMLoaded = cb => {
